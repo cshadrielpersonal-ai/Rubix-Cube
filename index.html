@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Interactive Rubik's Cube</title>
+    <style>
+        body {
+            background-color: #f4f1de;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            perspective: 1000px;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .scene {
+            width: 50vmin;
+            height: 50vmin;
+            container-type: size;
+        }
+
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateX(-30deg) rotateY(45deg); 
+            /* Added smooth transition so it doesn't snap instantly when letting go */
+            transition: transform 0.1s ease-out;
+        }
+
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 1.5cqw;
+            background-color: #000;
+            padding: 1.5cqw;
+            box-sizing: border-box;
+            border: 0.8cqw solid #000;
+        }
+
+        .sticker {
+            border-radius: 2cqw;
+        }
+
+        .front  { transform: translateZ(50cqw); }
+        .back   { transform: rotateY(180deg) translateZ(50cqw); }
+        .left   { transform: rotateY(-90deg) translateZ(50cqw); }
+        .right  { transform: rotateY(90deg) translateZ(50cqw); }
+        .top    { transform: rotateX(90deg) translateZ(50cqw); }
+        .bottom { transform: rotateX(-90deg) translateZ(50cqw); }
+
+        .white  { background-color: #ffffff; }
+        .yellow { background-color: #ffd500; }
+        .green  { background-color: #009b48; }
+        .blue   { background-color: #0046ad; }
+        .red    { background-color: #b71234; }
+        .orange { background-color: #ff5800; }
+    </style>
+</head>
+<body>
+
+    <div class="scene">
+        <div class="cube" id="cube">
+            <div class="face front">
+                <div class="sticker green"></div><div class="sticker green"></div><div class="sticker green"></div>
+                <div class="sticker green"></div><div class="sticker green"></div><div class="sticker green"></div>
+                <div class="sticker green"></div><div class="sticker green"></div><div class="sticker green"></div>
+            </div>
+            <div class="face back">
+                <div class="sticker blue"></div><div class="sticker blue"></div><div class="sticker blue"></div>
+                <div class="sticker blue"></div><div class="sticker blue"></div><div class="sticker blue"></div>
+                <div class="sticker blue"></div><div class="sticker blue"></div><div class="sticker blue"></div>
+            </div>
+            <div class="face top">
+                <div class="sticker white"></div><div class="sticker white"></div><div class="sticker white"></div>
+                <div class="sticker white"></div><div class="sticker white"></div><div class="sticker white"></div>
+                <div class="sticker white"></div><div class="sticker white"></div><div class="sticker white"></div>
+            </div>
+            <div class="face bottom">
+                <div class="sticker yellow"></div><div class="sticker yellow"></div><div class="sticker yellow"></div>
+                <div class="sticker yellow"></div><div class="sticker yellow"></div><div class="sticker yellow"></div>
+                <div class="sticker yellow"></div><div class="sticker yellow"></div><div class="sticker yellow"></div>
+            </div>
+            <div class="face left">
+                <div class="sticker orange"></div><div class="sticker orange"></div><div class="sticker orange"></div>
+                <div class="sticker orange"></div><div class="sticker orange"></div><div class="sticker orange"></div>
+                <div class="sticker orange"></div><div class="sticker orange"></div><div class="sticker orange"></div>
+            </div>
+            <div class="face right">
+                <div class="sticker red"></div><div class="sticker red"></div><div class="sticker red"></div>
+                <div class="sticker red"></div><div class="sticker red"></div><div class="sticker red"></div>
+                <div class="sticker red"></div><div class="sticker red"></div><div class="sticker red"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cube = document.getElementById('cube');
+        let isDragging = false;
+        let currentX = 45; // Initial Y-axis rotation
+        let currentY = -30; // Initial X-axis rotation
+        let startX, startY;
+        let autoSpinId;
+
+        // Function that continuously spins the cube when you aren't touching it
+        function startAutoSpin() {
+            autoSpinId = requestAnimationFrame(function spin() {
+                if (!isDragging) {
+                    currentX += 0.4; // Speed of the auto-spin
+                    cube.style.transform = `rotateX(${currentY}deg) rotateY(${currentX}deg)`;
+                    autoSpinId = requestAnimationFrame(spin);
+                }
+            });
+        }
+
+        function startDrag(e) {
+            isDragging = true;
+            
+            // Stop the auto-spin calculation instantly on touch
+            cancelAnimationFrame(autoSpinId);
+            
+            startX = e.pageX || (e.touches && e.touches[0].pageX);
+            startY = e.pageY || (e.touches && e.touches[0].pageY);
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            
+            const x = e.pageX || (e.touches && e.touches[0].pageX);
+            const y = e.pageY || (e.touches && e.touches[0].pageY);
+            
+            const deltaX = x - startX;
+            const deltaY = y - startY;
+
+            currentX += deltaX * 0.5;
+            currentY -= deltaY * 0.5;
+
+            // Restrict top/bottom flipping angles
+            currentY = Math.max(-75, Math.min(75, currentY));
+
+            cube.style.transform = `rotateX(${currentY}deg) rotateY(${currentX}deg)`;
+
+            startX = x;
+            startY = y;
+        }
+
+        function stopDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+            // When user releases their finger, start the auto-spinning script right back up!
+            startAutoSpin();
+        }
+
+        // Mouse Listeners
+        document.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDrag);
+
+        // Touch Listeners
+        document.addEventListener('touchstart', startDrag);
+        document.addEventListener('touchmove', drag);
+        document.addEventListener('touchend', stopDrag);
+
+        // Fire up the auto-spin when page first loads
+        startAutoSpin();
+    </script>
+</body>
+</html>
